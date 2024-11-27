@@ -75,39 +75,43 @@ public class PoisonMooPlugin extends Plugin {
 		var player = client.getLocalPlayer();
 
 		var moo = new StringBuilder("Moo");
+
 		switch (config.mooVariety()) {
-			case Never -> {}
-			case Random -> {
+			case Never:
+				break;
+			case Random:
 				moo.append("o".repeat(rand.nextInt(config.maxMooLength())));
-			}
-			case Damage -> {
+				break;
+			case Damage:
 				float frac = (float)damage / (float)MAX_DAMAGE;
 				moo.append("o".repeat(Math.round(config.maxMooLength()*frac)));
-			}
+				break;
 		}
 
 		switch (config.tilde()) {
-			case Never -> {}
-			case Always -> {
+			case Never:
+				break;
+			case Always:
 				moo.append('~');
-			}
-			case Random -> {
+				break;
+			case Random:
 				if (rand.nextBoolean()) {
 					moo.append('~');
 				}
-			}
+				break;
 		}
 
 		switch (config.exclaim()) {
-			case Never -> {}
-			case Always -> {
+			case Never:
+				break;
+			case Always:
 				moo.append('!');
-			}
-			case Random -> {
+				break;
+			case Random:
 				if (rand.nextBoolean()) {
 					moo.append('!');
 				}
-			}
+				break;
 		}
 
 		player.setOverheadText(moo.toString());
