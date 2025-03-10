@@ -8,12 +8,13 @@ import net.runelite.client.config.ConfigItem;
 public interface SpecWallOfShameConfig extends Config
 {
 	@ConfigItem(
-		keyName = "greeting",
-		name = "Welcome Greeting",
-		description = "The message to show to the user when they login"
+			keyName = "zcbSpecDamageThreshold",
+			name = "ZCB spec ruby bolt damage threshold",
+			description = "How low of a hit the player needs to make when using a ZCB with ruby bolts to count as a failure",
+			position = 0
 	)
-	default String greeting()
+	default int zcbSpecDamageThreshold()
 	{
-		return "Hello";
+		return 28;
 	}
 }
