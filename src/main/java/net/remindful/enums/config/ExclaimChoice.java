@@ -1,4 +1,4 @@
-package net.remindful.enums;
+package net.remindful.enums.config;
 
 public enum ExclaimChoice {
 	Never,

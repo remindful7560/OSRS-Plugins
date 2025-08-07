@@ -5,10 +5,12 @@ import javax.inject.Inject;
 import com.google.inject.Provides;
 
 import lombok.extern.slf4j.Slf4j;
+import net.remindful.enums.config.CureTicksChoice;
+import net.remindful.enums.PoisonStatus;
 import net.runelite.api.Client;
 import net.runelite.api.Constants;
-import net.runelite.api.VarPlayer;
 import net.runelite.api.events.VarbitChanged;
+import net.runelite.api.gameval.VarPlayerID;
 import net.runelite.client.Notifier;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.client.config.ConfigManager;
@@ -40,9 +42,11 @@ public class PoisonMooPlugin extends Plugin {
 	@Inject
 	private PoisonMooConfig config;
 
+	static final int COW_ATMOSPHERIC = 3044;
+
 	static final Random rand = new Random();
 
-	private int lastDamage = 0;
+	private final PoisonState poisonState = new PoisonState(0);
 
 	@Provides
 	PoisonMooConfig getConfig(ConfigManager configManager)
@@ -51,28 +55,33 @@ public class PoisonMooPlugin extends Plugin {
 	}
 
 	@Override
-	protected void startUp() throws Exception {
+	protected void startUp() {
 	}
 
 	@Override
-	protected void shutDown() throws Exception {
+	protected void shutDown() {
 	}
 
 	@Subscribe
-	private void onVarbitChanged(VarbitChanged event)
-	{
-		if (event.getVarpId() == VarPlayer.POISON)
-		{
-			if (lastDamage == 0) {
-				lastDamage = config.maxMooLength();
-			}
-			moo(lastDamage);
-			lastDamage = nextDamage(event.getValue());
+	private void onVarbitChanged(VarbitChanged event) {
+		if (event.getVarpId() == VarPlayerID.POISON) {
+			this.poisonState.setNextValue(event.getValue());
+			moo(this.poisonState);
 		}
 	}
 
-	public void moo(int damage) {
-		var player = client.getLocalPlayer();
+	private void moo(PoisonState poisonState) {
+		if (poisonState.nextStatus() == PoisonStatus.Antipoisoned && !config.mooOnAntipoisonTicks()) {
+			return;
+		}
+		if (poisonState.nextStatus() == PoisonStatus.Cured) {
+			if (config.mooOnCureTicks() == CureTicksChoice.Never) {
+				return;
+			}
+			if (!poisonState.poisonCured() && config.mooOnCureTicks() == CureTicksChoice.Poison_Cure) {
+				return;
+			}
+		}
 
 		var moo = new StringBuilder("Moo");
 
@@ -83,8 +92,11 @@ public class PoisonMooPlugin extends Plugin {
 				moo.append("o".repeat(rand.nextInt(config.maxMooLength())));
 				break;
 			case Damage:
-				float frac = (float)damage / (float)MAX_DAMAGE;
-				moo.append("o".repeat(Math.round(config.maxMooLength()*frac)));
+				float fraction = (float)poisonState.damage() / (float)PoisonState.MAX_DAMAGE;
+				moo.append("o".repeat(Math.round(config.maxMooLength()*fraction)));
+				break;
+			case Remaining:
+				moo.append("o".repeat(Math.round(config.maxMooLength()*poisonState.remainingFraction())));
 				break;
 		}
 
@@ -114,34 +126,12 @@ public class PoisonMooPlugin extends Plugin {
 				break;
 		}
 
+		var player = client.getLocalPlayer();
 		player.setOverheadText(moo.toString());
 		player.setOverheadCycle(config.mooDuration() * 1000 / Constants.CLIENT_TICK_LENGTH);
-	}
 
-
-	private static final int VENOM_THRESHOLD = 1000000;
-	private static final int MAX_DAMAGE = 20;
-	private static int nextDamage(int poisonValue)
-	{
-		int damage;
-
-		if (poisonValue >= VENOM_THRESHOLD)
-		{
-			//Venom Damage starts at 6, and increments in twos;
-			//The VarPlayer increments in values of 1, however.
-			poisonValue -= VENOM_THRESHOLD - 3;
-			damage = poisonValue * 2;
-			//Venom Damage caps at 20, but the VarPlayer keeps increasing
-			if (damage > MAX_DAMAGE)
-			{
-				damage = MAX_DAMAGE;
-			}
+		if (config.playSoundEffectOnMoo()) {
+			client.playSoundEffect(COW_ATMOSPHERIC);
 		}
-		else
-		{
-			damage = (int) Math.ceil(poisonValue / 5.0f);
-		}
-
-		return damage;
 	}
 }
