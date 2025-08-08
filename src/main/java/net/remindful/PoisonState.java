@@ -2,8 +2,7 @@ package net.remindful;
 
 import net.remindful.enums.PoisonStatus;
 
-import static net.remindful.enums.PoisonStatus.Cured;
-import static net.remindful.enums.PoisonStatus.Poisoned;
+import static net.remindful.enums.PoisonStatus.*;
 
 public class PoisonState {
 	private int currentValue = 0;
@@ -37,13 +36,54 @@ public class PoisonState {
 		return nextDamage(this.currentValue);
 	}
 
-	public static final int MAX_DURATION = 18;
+	private static float clamp(float fraction, float min, float max) {
+		if (fraction < min) {
+			return min;
+		}
+		if (fraction > max) {
+			return max;
+		}
+
+		return fraction;
+	}
+
+	public float damageFraction() {
+		return clamp((float) this.damage() / (float) MAX_DAMAGE, 0.0f, 1.0f);
+	}
+
+	public static final int MAX_ANTIVENOM_DURATION = 21;
+	public static final int MAX_ANTIPOISON_DURATION = MAX_ANTIVENOM_DURATION + 38;
+	public static final int MAX_POISON_DURATION = 100; // This is an assumption based off of damage values
 	public float remainingFraction() {
-		return (float) Math.abs(this.nextValue) / (float) MAX_DURATION;
+		var statusRemaining =  remaining(this.nextValue);
+		var fraction = 0f;
+
+		if (this.nextStatus() == Antipoisoned) {
+			if (statusRemaining > MAX_ANTIPOISON_DURATION) {
+				fraction = (float) (statusRemaining - MAX_ANTIPOISON_DURATION) / (float) MAX_ANTIVENOM_DURATION;
+			} else {
+				fraction = (float) statusRemaining / (float) MAX_ANTIPOISON_DURATION;
+			}
+		} else if (this.nextStatus() == Poisoned) {
+			fraction = (float) statusRemaining / (float) MAX_POISON_DURATION;
+		}
+
+
+		return clamp(fraction, 0.0f, 1.0f);
+	}
+
+	private static int remaining(int poisonValue) {
+		int remaining = poisonValue;
+
+		if (poisonValue >= VENOM_THRESHOLD) {
+			remaining = poisonValue - VENOM_THRESHOLD - 3;
+		}
+
+		return Math.abs(remaining);
 	}
 
 	// Pulled from the Poison plugin
-	private static final int VENOM_THRESHOLD = 1000000;
+	private static final int VENOM_THRESHOLD = 1_000_000;
 	public static final int MAX_DAMAGE = 20;
 	private static int nextDamage(int poisonValue) {
 		int damage;

@@ -92,8 +92,7 @@ public class PoisonMooPlugin extends Plugin {
 				moo.append("o".repeat(rand.nextInt(config.maxMooLength())));
 				break;
 			case Damage:
-				float fraction = (float)poisonState.damage() / (float)PoisonState.MAX_DAMAGE;
-				moo.append("o".repeat(Math.round(config.maxMooLength()*fraction)));
+				moo.append("o".repeat(Math.round(config.maxMooLength()*poisonState.damageFraction())));
 				break;
 			case Remaining:
 				moo.append("o".repeat(Math.round(config.maxMooLength()*poisonState.remainingFraction())));
